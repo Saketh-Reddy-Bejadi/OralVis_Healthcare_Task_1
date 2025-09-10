@@ -16,8 +16,7 @@ const Upload = () => {
   
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   
-  // Sequential image upload system
-  const [currentStep, setCurrentStep] = useState(0); // 0: form, 1: upper, 2: front, 3: lower, 4: review
+  const [currentStep, setCurrentStep] = useState(0);
   const [uploadedImages, setUploadedImages] = useState({
     upper: null,
     front: null,
@@ -56,7 +55,6 @@ const Upload = () => {
     }
   ];
   
-  // Populate form data from user profile on component mount
   useEffect(() => {
     if (user) {
       setFormData({
@@ -66,7 +64,6 @@ const Upload = () => {
         note: ''
       });
       
-      // Skip to image upload if user has complete profile data
       if (user.name && user.mobileNumber && user.email) {
         setCurrentStep(1);
       }
@@ -144,13 +141,11 @@ const Upload = () => {
     const file = e.target.files[0];
     if (!file) return;
     
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       setError('Please select a valid image file');
       return;
     }
     
-    // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       setError('Image size must be less than 10MB');
       return;
@@ -158,7 +153,6 @@ const Upload = () => {
     
     setUploadedImages(prev => ({ ...prev, [imageType]: file }));
     
-    // Generate preview
     const reader = new FileReader();
     reader.onload = () => {
       setImagePreviews(prev => ({ ...prev, [imageType]: reader.result }));
@@ -196,7 +190,6 @@ const Upload = () => {
   const handleFinalSubmit = async () => {
     setError(null);
     
-    // Validate all images are uploaded
     if (!uploadedImages.upper || !uploadedImages.front || !uploadedImages.lower) {
       setError('Please upload all 3 required images');
       return;
@@ -206,13 +199,11 @@ const Upload = () => {
       setIsLoading(true);
       const fd = new FormData();
       
-      // Append form data
       fd.append('patientName', formData.patientName);
       fd.append('mobileNumber', formData.mobileNumber);
       fd.append('email', formData.email);
       fd.append('note', formData.note);
       
-      // Append images in correct order: upper, front, lower
       fd.append('images', uploadedImages.upper);
       fd.append('images', uploadedImages.front);
       fd.append('images', uploadedImages.lower);
@@ -227,7 +218,6 @@ const Upload = () => {
     }
   };
 
-  // Step progress component
   const StepProgress = () => (
     <div className="mb-8">
       <div className="flex items-center justify-center">
@@ -278,7 +268,6 @@ const Upload = () => {
             </div>
           )}
 
-          {/* Step 0: Patient Information Form */}
           {currentStep === 0 && (
             <div>
               <div className="text-center mb-8">
@@ -291,7 +280,6 @@ const Upload = () => {
                 </p>
               </div>
               
-              {/* Show current data with edit option */}
               {!isEditingProfile && user && user.name && user.mobileNumber && user.email ? (
                 <div className="space-y-6">
                   <div className="bg-gray-50 rounded-lg p-6">
@@ -399,7 +387,6 @@ const Upload = () => {
                       type="button"
                       onClick={() => {
                         setIsEditingProfile(false);
-                        // Reset form data to user data
                         if (user) {
                           setFormData({
                             patientName: user.name || '',
@@ -427,7 +414,6 @@ const Upload = () => {
             </div>
           )}
 
-          {/* Steps 1-3: Image Upload Steps */}
           {currentStep >= 1 && currentStep <= 3 && (
             <div>
               {(() => {
@@ -509,7 +495,6 @@ const Upload = () => {
             </div>
           )}
 
-          {/* Step 4: Review and Submit */}
           {currentStep === 4 && (
             <div>
               <div className="text-center mb-8">
@@ -517,7 +502,6 @@ const Upload = () => {
                 <p className="text-gray-600">Please review your information and images before submitting</p>
               </div>
               
-              {/* Patient Info Review */}
               <div className="bg-gray-50 rounded-lg p-6 mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Patient Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -528,7 +512,6 @@ const Upload = () => {
                 </div>
               </div>
               
-              {/* Images Review */}
               <div className="mb-8">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Dental Images (3)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

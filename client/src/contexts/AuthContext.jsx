@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { authAPI } from '../services/api';
 
-// Initial state
 const initialState = {
   user: null,
   token: localStorage.getItem('token'),
@@ -10,7 +9,6 @@ const initialState = {
   error: null
 };
 
-// Action types
 const AUTH_ACTIONS = {
   SET_LOADING: 'SET_LOADING',
   LOGIN_SUCCESS: 'LOGIN_SUCCESS',
@@ -20,7 +18,6 @@ const AUTH_ACTIONS = {
   SET_USER: 'SET_USER'
 };
 
-// Reducer
 const authReducer = (state, action) => {
   switch (action.type) {
     case AUTH_ACTIONS.SET_LOADING:
@@ -71,10 +68,8 @@ const authReducer = (state, action) => {
   }
 };
 
-// Create context
 const AuthContext = createContext();
 
-// Custom hook to use auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -83,11 +78,9 @@ export const useAuth = () => {
   return context;
 };
 
-// AuthProvider component
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Load user profile on app start if token exists
   useEffect(() => {
     const loadUserProfile = async () => {
       const token = localStorage.getItem('token');
@@ -109,7 +102,6 @@ export const AuthProvider = ({ children }) => {
     loadUserProfile();
   }, []);
 
-  // Login function
   const login = async (email, password) => {
     try {
       dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
@@ -132,7 +124,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Register function
   const register = async (userData) => {
     try {
       dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
@@ -155,7 +146,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Logout function
   const logout = async () => {
     try {
       await authAPI.logout();
@@ -166,7 +156,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Update profile function
   const updateProfile = async (profileData) => {
     try {
       dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
@@ -183,7 +172,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Clear error function
   const clearError = () => {
     dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR });
   };

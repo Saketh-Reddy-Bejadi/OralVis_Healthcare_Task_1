@@ -1,11 +1,9 @@
 import axios from 'axios';
 
-// Determine API base URL from environment (Vercel-compatible)
 const API_BASE_URL =
   import.meta?.env?.VITE_API_BASE_URL ||
   'http://localhost:3000';
 
-// Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -13,7 +11,6 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -27,12 +24,10 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
       localStorage.removeItem('token');
       window.location.href = '/login';
     }
@@ -40,7 +35,6 @@ api.interceptors.response.use(
   }
 );
 
-// Auth API endpoints
 export const authAPI = {
   register: (userData) => api.post('/auth/register', userData),
   login: (email, password) => api.post('/auth/login', { email, password }),
@@ -49,9 +43,7 @@ export const authAPI = {
   updateProfile: (profileData) => api.put('/auth/profile', profileData),
 };
 
-// Submission API endpoints
 export const submissionAPI = {
-  // Patient endpoints
   upload: (formData) => api.post('/api/submissions/upload', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
@@ -59,17 +51,14 @@ export const submissionAPI = {
   }),
   getMySubmissions: () => api.get('/api/submissions/my-submissions'),
   
-  // Admin endpoints
   getAllSubmissions: () => api.get('/api/submissions/all'),
   getSubmission: (id) => api.get(`/api/submissions/${id}`),
   saveAnnotation: (id, annotationData) => api.post(`/api/submissions/${id}/annotate`, annotationData),
   generateReport: (id) => api.post(`/api/submissions/${id}/generate-report`),
 };
 
-// Helper function to get file URL
 export const getFileUrl = (path) => {
   if (!path) return '';
-  // If path is already absolute (e.g., starts with http), return as-is
   if (/^https?:\/\//i.test(path)) return path;
   return `${API_BASE_URL}${path}`;
 };

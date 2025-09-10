@@ -35,9 +35,8 @@ const AnnotationPage = () => {
   const [brushSize, setBrushSize] = useState(3);
   const [activeColor, setActiveColor] = useState('#DC2626');
   const [zoom, setZoom] = useState(1);
-  const [activeTool, setActiveTool] = useState('freehand'); // freehand | rectangle | circle | arrow | eraser
+  const [activeTool, setActiveTool] = useState('freehand');
 
-  // Color-to-indication mapping
   const COLORS = [
     { name: 'Inflamed / Red gums', value: '#7C2D12' },
     { name: 'Malaligned', value: '#7C3AED' },
@@ -47,7 +46,6 @@ const AnnotationPage = () => {
     { name: 'Crowns', value: '#EC4899' },
   ];
 
-  // Remove image objects from Fabric JSON so overlays can be reapplied on top of new base image
   const stripImagesFromJSON = (json) => {
     if (!json) return json;
     try {
@@ -59,7 +57,6 @@ const AnnotationPage = () => {
     }
   };
 
-  // Add overlay objects to the canvas without replacing the base image
   const addAnnotations = (canvas, json) => {
     if (!canvas || !json) return;
     const parsed = stripImagesFromJSON(json);
@@ -94,7 +91,6 @@ const AnnotationPage = () => {
   useEffect(() => {
     if (isLoading || !submission || !canvasRef.current) return;
 
-    // Always render the ORIGINAL as the canvas base. We will overlay annotations on top.
     const originals = submission.originalImagePaths || [submission.originalImagePath];
     const basePath = originals[currentImageIndex] || originals[0];
     const imageUrl = getFileUrl(basePath);
@@ -123,7 +119,6 @@ const AnnotationPage = () => {
   useEffect(() => {
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
-    // Reset interaction defaults
     canvas.isDrawingMode = false;
     canvas.selection = false;
     canvas.defaultCursor = 'default';
@@ -133,7 +128,6 @@ const AnnotationPage = () => {
       canvas.freeDrawingBrush.color = activeColor;
       canvas.freeDrawingBrush.width = brushSize;
     } else if (activeTool === 'eraser') {
-      // Basic eraser using white brush over image; avoids fabric eraser plugin issues
       canvas.isDrawingMode = true;
       canvas.freeDrawingBrush.color = '#FFFFFF';
       canvas.freeDrawingBrush.width = Math.max(10, brushSize + 6);
@@ -190,7 +184,6 @@ const AnnotationPage = () => {
     setError(null);
     try {
       const latestAnnotations = persistLocalState() || annotationData;
-      // For generating final annotated snapshots, always start from ORIGINAL images as base
       const o = submission?.originalImagePaths || [submission?.originalImagePath];
       const basePaths = o;
 
@@ -206,7 +199,6 @@ const AnnotationPage = () => {
             canvas.sendToBack(img);
             if (latestAnnotations[i]) addAnnotations(canvas, latestAnnotations[i]);
             canvas.renderAll();
-            // Ensure JSON also stored for this index
             const dataForI = [...latestAnnotations];
             while (dataForI.length <= i) dataForI.push(null);
             dataForI[i] = stripImagesFromJSON(canvas.toJSON());
@@ -290,7 +282,6 @@ const AnnotationPage = () => {
           <div className="bg-white rounded-xl shadow-sm border">
             <h3 className="text-sm font-semibold text-gray-800 p-4 border-b">Tools</h3>
             <div className="p-4 space-y-3">
-              {/* Tool mode buttons */}
               <div className="grid grid-cols-2 gap-2">
                 <button onClick={() => setActiveTool('freehand')} className={`px-3 py-2 rounded border text-sm ${activeTool==='freehand'?'bg-primary-50 border-primary-300':'bg-white'}`}>✏️ Freehand</button>
                 <button onClick={() => { setActiveTool('rectangle'); addShape('rectangle'); }} className={`px-3 py-2 rounded border text-sm ${activeTool==='rectangle'?'bg-primary-50 border-primary-300':'bg-white'}`}>⬛ Rectangle</button>
@@ -299,7 +290,6 @@ const AnnotationPage = () => {
                 <button onClick={() => setActiveTool('eraser')} className={`px-3 py-2 rounded border text-sm ${activeTool==='eraser'?'bg-primary-50 border-primary-300':'bg-white'}`}>🧹 Eraser</button>
               </div>
               <div className="flex items-center justify-between"><span className="text-sm text-gray-700">Brush size: {brushSize}px</span><input type="range" min="1" max="20" value={brushSize} onChange={(e)=>setBrushSize(parseInt(e.target.value))} /></div>
-              {/* Color legend with indications */}
               <div className="space-y-2">
                 {COLORS.map((c)=> (
                   <button key={c.value} onClick={()=>setActiveColor(c.value)} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm border ${activeColor===c.value?'bg-gray-50 ring-1 ring-primary-400':'hover:bg-gray-50'}`}>

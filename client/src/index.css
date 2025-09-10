@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom styles */
 .canvas-container {
   border: 2px solid #e5e7eb;
   border-radius: 8px;

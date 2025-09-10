@@ -48,7 +48,6 @@ const AdminDashboard = () => {
   const generateReport = async (submissionId) => {
     try {
       await submissionAPI.generateReport(submissionId);
-      // Reload submissions to get updated status
       loadSubmissions();
     } catch (error) {
       console.error('Error generating report:', error);
@@ -67,7 +66,6 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
@@ -82,7 +80,6 @@ const AdminDashboard = () => {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md mb-6">
@@ -90,7 +87,6 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Stats Overview */}
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-4 mb-8">
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="p-5">
@@ -167,7 +163,6 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Filters and Actions */}
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
             <div className="flex justify-between items-center mb-4">

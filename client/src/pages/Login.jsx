@@ -11,7 +11,6 @@ const Login = () => {
     password: ''
   });
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
       const redirectPath = user.role === 'admin' ? '/admin' : '/dashboard';
@@ -39,7 +38,6 @@ const Login = () => {
     const result = await login(formData.email, formData.password);
     
     if (result.success) {
-      // Navigation will be handled by useEffect
     }
   };
 

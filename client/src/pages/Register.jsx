@@ -15,7 +15,6 @@ const Register = () => {
     mobileNumber: ''
   });
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
       const redirectPath = user.role === 'admin' ? '/admin' : '/dashboard';
@@ -36,13 +35,11 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validation
     if (!formData.name || !formData.email || !formData.password) {
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      // Handle password mismatch (you might want to add this to your error state)
       return;
     }
 
@@ -56,14 +53,12 @@ const Register = () => {
       password: formData.password,
       role: formData.role,
       mobileNumber: formData.mobileNumber,
-      // For backward compatibility, use mobile number as patient ID
       ...(formData.role === 'patient' ? { patientId: formData.mobileNumber } : {})
     };
 
     const result = await register(userData);
     
     if (result.success) {
-      // Navigation will be handled by useEffect
     }
   };
 
