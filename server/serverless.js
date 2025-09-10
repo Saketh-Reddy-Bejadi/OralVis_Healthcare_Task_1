@@ -14,7 +14,12 @@ const app = express();
 
 // CORS: allow configured frontend origin or all in dev
 const allowedOrigin = process.env.FRONTEND_ORIGIN || '*';
-app.use(cors({ origin: allowedOrigin, credentials: true }));
+app.use(cors({
+  origin: [
+    'https://oralvis-healthcare-1.vercel.app'
+  ],
+  credentials: true
+}));
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
