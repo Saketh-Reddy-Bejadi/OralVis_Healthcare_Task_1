@@ -3,7 +3,6 @@ import axios from 'axios';
 // Determine API base URL from environment (Vercel-compatible)
 const API_BASE_URL =
   import.meta?.env?.VITE_API_BASE_URL ||
-  process?.env?.VITE_API_BASE_URL ||
   'http://localhost:3000';
 
 // Create axios instance
