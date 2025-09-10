@@ -29,6 +29,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // MongoDB connection with fallback
 const mongoUri = process.env.MONGODB_URI;
+console.log(mongoUri)
 mongoose.connect(mongoUri)
   .then(() => console.log('✅ Connected to MongoDB'))
   .catch((error) => console.error('❌ MongoDB connection error:', error));
