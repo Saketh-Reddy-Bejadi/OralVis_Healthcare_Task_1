@@ -2,12 +2,11 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
-const dotenv = require('dotenv');
+
+require('@dotenvx/dotenvx').config();
 
 const authRoutes = require('./routes/auth');
 const submissionRoutes = require('./routes/submissions');
-
-dotenv.config();
 
 const app = express();
 
@@ -21,9 +20,8 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch((error) => console.error('MongoDB connection error:', error));
-
+  .then(() => console.log('✅ Connected to MongoDB'))
+  .catch((error) => console.error('❌ MongoDB connection error:', error));
 
 app.use('/auth', authRoutes);
 app.use('/api/submissions', submissionRoutes);
