@@ -13,7 +13,7 @@ const generateToken = (userId) => {
 // Register route
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role, patientId } = req.body;
+    const { name, email, password, role, mobileNumber } = req.body;
 
     // Validate required fields
     if (!name || !email || !password) {
@@ -26,15 +26,11 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'User with this email already exists' });
     }
 
-    // For patients, patientId is required and must be unique
-    if (role === 'patient' || !role) {
-      if (!patientId) {
-        return res.status(400).json({ message: 'Patient ID is required for patient registration' });
-      }
-      
-      const existingPatientId = await User.findOne({ patientId });
-      if (existingPatientId) {
-        return res.status(400).json({ message: 'Patient ID already exists' });
+    // Validate mobile number format if provided
+    if (mobileNumber) {
+      const cleanMobile = mobileNumber.replace(/[\s\-\+\(\)]/g, '');
+      if (!/^[0-9]{10,15}$/.test(cleanMobile)) {
+        return res.status(400).json({ message: 'Please provide a valid mobile number (10-15 digits)' });
       }
     }
 
@@ -44,7 +40,9 @@ router.post('/register', async (req, res) => {
       email,
       password,
       role: role || 'patient',
-      ...(role === 'patient' || !role ? { patientId } : {})
+      mobileNumber: mobileNumber?.trim() || '',
+      // Backward compatibility: set patientId from mobileNumber, but do not require it
+      ...(mobileNumber ? { patientId: mobileNumber.trim() } : {})
     });
 
     await user.save();
@@ -57,6 +55,7 @@ router.post('/register', async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      mobileNumber: user.mobileNumber,
       role: user.role,
       patientId: user.patientId
     };
@@ -102,6 +101,7 @@ router.post('/login', async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      mobileNumber: user.mobileNumber,
       role: user.role,
       patientId: user.patientId
     };
@@ -128,11 +128,65 @@ router.get('/profile', authenticateToken, (req, res) => {
     _id: req.user._id,
     name: req.user.name,
     email: req.user.email,
+    mobileNumber: req.user.mobileNumber,
     role: req.user.role,
     patientId: req.user.patientId
   };
   
   res.json({ user: userData });
+});
+
+// Update user profile
+router.put('/profile', authenticateToken, async (req, res) => {
+  try {
+    const { name, mobileNumber } = req.body;
+    const userId = req.user._id;
+    
+    // Validate input
+    if (!name?.trim()) {
+      return res.status(400).json({ message: 'Name is required' });
+    }
+    
+    // Validate mobile number if provided
+    if (mobileNumber) {
+      const cleanMobile = mobileNumber.replace(/[\s\-\+\(\)]/g, '');
+      if (!/^[0-9]{10,15}$/.test(cleanMobile)) {
+        return res.status(400).json({ message: 'Please provide a valid mobile number (10-15 digits)' });
+      }
+    }
+    
+    // Update user
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { 
+        name: name.trim(),
+        mobileNumber: mobileNumber?.trim() || ''
+      },
+      { new: true }
+    );
+    
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Return updated user data
+    const userData = {
+      _id: updatedUser._id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      mobileNumber: updatedUser.mobileNumber,
+      role: updatedUser.role,
+      patientId: updatedUser.patientId
+    };
+    
+    res.json({ 
+      message: 'Profile updated successfully',
+      user: userData 
+    });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({ message: 'Server error updating profile' });
+  }
 });
 
 module.exports = router;

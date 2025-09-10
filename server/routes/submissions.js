@@ -38,30 +38,51 @@ const upload = multer({
   }
 });
 
-// Patient upload route - now handles multiple images
-router.post('/upload', authenticateToken, requirePatient, upload.array('images', 5), async (req, res) => {
+// Patient upload route - requires exactly 3 images in order
+router.post('/upload', authenticateToken, requirePatient, upload.array('images', 3), async (req, res) => {
   try {
-    const { patientName, patientId, email, note } = req.body;
+    const { patientName, mobileNumber, email, note } = req.body;
 
-    if (!req.files || req.files.length < 3) {
-      return res.status(400).json({ message: 'At least 3 images are required (minimum 3, maximum 5)' });
+    // Validate required fields
+    if (!patientName || !mobileNumber || !email) {
+      return res.status(400).json({ 
+        message: 'Patient name, mobile number, and email are required',
+        missingFields: {
+          patientName: !patientName,
+          mobileNumber: !mobileNumber,
+          email: !email
+        }
+      });
     }
 
-    if (req.files.length > 5) {
-      return res.status(400).json({ message: 'Maximum 5 images allowed' });
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: 'Please provide a valid email address' });
     }
 
-    if (!patientName || !patientId || !email) {
-      return res.status(400).json({ message: 'Patient name, patient ID, and email are required' });
+    // Validate mobile number format (basic validation)
+    const mobileRegex = /^[0-9]{10,15}$/;
+    if (!mobileRegex.test(mobileNumber.replace(/[\s\-\+\(\)]/g, ''))) {
+      return res.status(400).json({ message: 'Please provide a valid mobile number' });
+    }
+
+    // Strictly require exactly 3 images
+    if (!req.files || req.files.length !== 3) {
+      return res.status(400).json({ 
+        message: 'Exactly 3 images are required in order: 1) Upper teeth, 2) Front teeth, 3) Lower teeth',
+        currentCount: req.files ? req.files.length : 0,
+        requiredCount: 3
+      });
     }
 
     const originalImagePaths = req.files.map(file => file.path);
 
     const submission = new Submission({
       patientName,
-      patientId,
+      mobileNumber, // store as mobileNumber field
       email,
-      note,
+      note: note || '', // Allow empty notes
       userId: req.user._id,
       originalImagePaths,
       uploadedAt: new Date()
@@ -74,13 +95,15 @@ router.post('/upload', authenticateToken, requirePatient, upload.array('images',
       submission: {
         _id: submission._id,
         patientName: submission.patientName,
-        patientId: submission.patientId,
+        mobileNumber: submission.mobileNumber,
+        patientId: submission.mobileNumber,
         email: submission.email,
         note: submission.note,
         status: submission.status,
         uploadedAt: submission.uploadedAt,
         originalImagePaths: submission.originalImagePaths.map(imagePath => `/uploads/images/${path.basename(imagePath)}`),
-        imageCount: submission.originalImagePaths.length
+        imageCount: 3, // Always 3 images
+        imageOrder: ['Upper Teeth', 'Front Teeth', 'Lower Teeth']
       }
     });
   } catch (error) {
@@ -108,7 +131,8 @@ router.get('/my-submissions', authenticateToken, requirePatient, async (req, res
       return {
         _id: submission._id,
         patientName: submission.patientName,
-        patientId: submission.patientId,
+        mobileNumber: submission.mobileNumber,
+        patientId: submission.mobileNumber,
         email: submission.email,
         note: submission.note,
         status: submission.status,
@@ -151,7 +175,8 @@ router.get('/all', authenticateToken, requireAdmin, async (req, res) => {
       return {
         _id: submission._id,
         patientName: submission.patientName,
-        patientId: submission.patientId,
+        mobileNumber: submission.mobileNumber,
+        patientId: submission.mobileNumber,
         email: submission.email,
         note: submission.note,
         status: submission.status,
@@ -198,7 +223,8 @@ router.get('/:id', authenticateToken, requireAdmin, async (req, res) => {
     const submissionWithUrls = {
       _id: submission._id,
       patientName: submission.patientName,
-      patientId: submission.patientId,
+      mobileNumber: submission.mobileNumber,
+      patientId: submission.mobileNumber,
       email: submission.email,
       note: submission.note,
       status: submission.status,
@@ -228,7 +254,7 @@ router.get('/:id', authenticateToken, requireAdmin, async (req, res) => {
 // Save annotation
 router.post('/:id/annotate', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { annotationData, annotatedImageDataUrls, treatmentRecommendations, annotatedImageDataUrl } = req.body;
+    const { annotationData, annotatedImageDataUrls, treatmentRecommendations, annotatedImageDataUrl, annotatedImageIndex } = req.body;
 
     const submission = await Submission.findById(req.params.id);
     if (!submission) {
@@ -240,18 +266,34 @@ router.post('/:id/annotate', authenticateToken, requireAdmin, async (req, res) =
     const existingAnnotatedImagePaths = submission.annotatedImagePaths || [];
     const updatedAnnotatedImagePaths = [...existingAnnotatedImagePaths]; // Create a mutable copy
 
-    if (annotatedImageDataUrl && typeof annotatedImageIndex === 'number') {
+    // Ensure output directory exists
+    const outDir = path.join('uploads', 'annotated-images');
+    if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+
+    const idx = Number(annotatedImageIndex);
+    if (annotatedImageDataUrl && Number.isFinite(idx)) {
       const base64Data = annotatedImageDataUrl.replace(/^data:image\/png;base64,/, '');
-      const filename = `annotated-${Date.now()}-${annotatedImageIndex}-${Math.round(Math.random() * 1E9)}.png`;
-      const filepath = path.join('uploads/annotated-images', filename);
-      
+      const filename = `annotated-${Date.now()}-${idx}-${Math.round(Math.random() * 1E9)}.png`;
+      const filepath = path.join(outDir, filename);
+      // pad array to index to ensure index is addressable
+      while (updatedAnnotatedImagePaths.length <= idx) {
+        updatedAnnotatedImagePaths.push(null);
+      }
       fs.writeFileSync(filepath, base64Data, 'base64');
-      updatedAnnotatedImagePaths[annotatedImageIndex] = filepath; // Update specific index
+      updatedAnnotatedImagePaths[idx] = filepath; // Update specific index
+    } else if (annotatedImageDataUrl) {
+      // Fallback: append if index not provided
+      const base64Data = annotatedImageDataUrl.replace(/^data:image\/png;base64,/, '');
+      const filename = `annotated-${Date.now()}-${Math.round(Math.random() * 1E9)}.png`;
+      const filepath = path.join(outDir, filename);
+      fs.writeFileSync(filepath, base64Data, 'base64');
+      updatedAnnotatedImagePaths.push(filepath);
     }
 
-    // Update submission with annotation data
-    submission.annotationData = annotationData; // This is an array of JSON data
-    submission.annotatedImagePaths = updatedAnnotatedImagePaths.filter(Boolean); // Filter out any null/undefined if sparse array
+    // Update submission with annotation data (preserve indices 0..2)
+    submission.annotationData = Array.isArray(annotationData) ? annotationData : [];
+    // Keep nulls to maintain index alignment with images
+    submission.annotatedImagePaths = updatedAnnotatedImagePaths;
     // Keep backward compatibility (if needed, though with array this might be less critical)
     if (updatedAnnotatedImagePaths.length > 0) {
       submission.annotatedImagePath = updatedAnnotatedImagePaths[0]; // Still update for backward compatibility
@@ -292,6 +334,14 @@ router.post('/:id/generate-report', authenticateToken, requireAdmin, async (req,
 
     if (submission.status !== 'annotated') {
       return res.status(400).json({ message: 'Submission must be annotated before generating report' });
+    }
+
+    // Require annotated images (do not fallback to originals)
+    const annotatedPaths = (submission.annotatedImagePaths && submission.annotatedImagePaths.length ? submission.annotatedImagePaths : [])
+      .filter(Boolean)
+      .slice(0, 3);
+    if (annotatedPaths.length < 3) {
+      return res.status(400).json({ message: 'Annotated images are required to generate the report (all three views).' });
     }
 
     // Ensure reports directory exists
@@ -343,7 +393,7 @@ router.post('/:id/generate-report', authenticateToken, requireAdmin, async (req,
     doc.fillColor(COLORS.text).fontSize(10);
     const infoY = 135;
     doc.text(`Name:  ${submission.patientName || '-'}`, 28, infoY);
-    doc.text(`Phone: ${submission.patientId || '-'}`, 220, infoY);
+    doc.text(`Phone: ${submission.mobileNumber || submission.patientId || '-'}`, 220, infoY);
     doc.text(`Date:  ${new Date().toLocaleDateString('en-GB')}`, 420, infoY);
 
     // 3) Screening card background
@@ -362,10 +412,8 @@ router.post('/:id/generate-report', authenticateToken, requireAdmin, async (req,
     const gap = 24;
     const firstX = (doc.page.width - (slotW * 3 + gap * 2)) / 2;
 
-    // Resolve images: prefer annotated, fallback to originals. Use first three available.
-    const annotated = (submission.annotatedImagePaths && submission.annotatedImagePaths.length ? submission.annotatedImagePaths : []).filter(Boolean);
-    const originals = (submission.originalImagePaths && submission.originalImagePaths.length ? submission.originalImagePaths : []).filter(Boolean);
-    const sources = [0, 1, 2].map(i => (annotated[i] && fs.existsSync(annotated[i])) ? annotated[i] : (originals[i] && fs.existsSync(originals[i])) ? originals[i] : null);
+    // Use only annotated images for the report
+    const sources = [0, 1, 2].map(i => (annotatedPaths[i] && fs.existsSync(annotatedPaths[i])) ? annotatedPaths[i] : null);
 
     const labels = ['Upper Teeth', 'Front Teeth', 'Lower Teeth'];
     const labelColors = [COLORS.red, COLORS.amber, COLORS.red];

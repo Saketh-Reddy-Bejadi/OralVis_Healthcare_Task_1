@@ -7,7 +7,8 @@ const submissionSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  patientId: {
+  // Backward compatibility: keep field name patientId but it's the mobile number
+  mobileNumber: {
     type: String,
     required: true,
     trim: true
