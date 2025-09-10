@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { authAPI } from '../services/api';
+import { authAPI, setAuthContextRef } from '../services/api';
 
 const initialState = {
   user: null,
@@ -91,8 +91,13 @@ export const AuthProvider = ({ children }) => {
           dispatch({ type: AUTH_ACTIONS.SET_USER, payload: response.data.user });
         } catch (error) {
           console.error('Error loading user profile:', error);
-          localStorage.removeItem('token');
-          dispatch({ type: AUTH_ACTIONS.LOGOUT });
+          // If it's a 401 error, the token is invalid
+          if (error.response?.status === 401) {
+            localStorage.removeItem('token');
+            dispatch({ type: AUTH_ACTIONS.LOGOUT });
+          } else {
+            dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
+          }
         }
       } else {
         dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
@@ -176,14 +181,25 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR });
   };
 
+  const handleUnauthorized = () => {
+    localStorage.removeItem('token');
+    dispatch({ type: AUTH_ACTIONS.LOGOUT });
+  };
+
   const value = {
     ...state,
     login,
     register,
     logout,
     updateProfile,
-    clearError
+    clearError,
+    handleUnauthorized
   };
+
+  // Set the global reference for API interceptor
+  useEffect(() => {
+    setAuthContextRef(value);
+  }, [value]);
 
   return (
     <AuthContext.Provider value={value}>

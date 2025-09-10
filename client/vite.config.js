@@ -9,4 +9,15 @@ export default defineConfig({
   define: {
     global: 'globalThis',
   },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+  },
+  base: '/',
 })

@@ -3,25 +3,33 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 
-require('@dotenvx/dotenvx').config();
-
 const authRoutes = require('./routes/auth');
 const submissionRoutes = require('./routes/submissions');
 
 const app = express();
 
-
+// CORS configuration
 app.use(
   cors({
-    origin: ["https://oralvis-healthcare-1.vercel.app"],
+    origin: [
+      "https://oralvis-healthcare-1.vercel.app",
+      "http://localhost:5173",
+      "http://localhost:3000"
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
   })
 );
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-mongoose.connect(process.env.MONGODB_URI)
+// MongoDB connection with fallback
+const mongoUri = process.env.MONGODB_URI;
+mongoose.connect(mongoUri)
   .then(() => console.log('✅ Connected to MongoDB'))
   .catch((error) => console.error('❌ MongoDB connection error:', error));
 

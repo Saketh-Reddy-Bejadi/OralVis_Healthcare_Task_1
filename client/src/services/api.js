@@ -2,7 +2,16 @@ import axios from 'axios';
 
 const API_BASE_URL =
   import.meta?.env?.VITE_API_BASE_URL ||
-  'http://localhost:3000';
+  (import.meta?.env?.MODE === 'production' 
+    ? 'https://oralvis-healthcare-1-backend.vercel.app' 
+    : 'http://localhost:3000');
+
+// Global reference to auth context for handling 401 errors
+let authContextRef = null;
+
+export const setAuthContextRef = (authContext) => {
+  authContextRef = authContext;
+};
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -29,7 +38,10 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Use the auth context to handle logout properly without page refresh
+      if (authContextRef && authContextRef.handleUnauthorized) {
+        authContextRef.handleUnauthorized();
+      }
     }
     return Promise.reject(error);
   }
